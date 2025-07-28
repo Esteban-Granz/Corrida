@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corrida da Qualidade - Scores</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+
+            
+            background-image: url('callanimadogif.gif');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            
+        }
+        .score-container {
+            background-color: #ffffff;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+            max-width: 600px;
+        }
+        .score-list {
+            width: 100%;
+            list-style: none;
+            padding: 0;
+        }
+        .score-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .score-item:last-child {
+            border-bottom: none;
+        }
+        .score-item span {
+            font-weight: 500;
+            color: #475569;
+        }
+        .score-item .position {
+            font-weight: bold;
+            color: #3b82f6;
+        }
+        .score-item .finished {
+            color: #10b981; /* green */
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="score-container">
+        <h1 class="text-3xl font-bold text-gray-800">Scores dos Jogadores</h1>
+
+        <ul id="scoreList" class="score-list">
+            <li class="score-item text-gray-500">Nenhum jogador encontrado.</li>
+        </ul>
+
+        <div class="mt-4 text-center">
+            <a href="index.html" class="text-blue-600 hover:underline">Voltar ao Jogo</a>
+        </div>
+    </div>
+
+    <script src="game-logic.js"></script>
+    <script>
+        const scoreList = document.getElementById('scoreList');
+        const totalHouses = 30; // Importante ter essa constante aqui também
+
+        async function loadScores() {
+            const allPlayers = await getAllPlayerIds();
+            scoreList.innerHTML = ''; // Limpa a lista existente
+
+            if (allPlayers.length === 0) {
+                scoreList.innerHTML = '<li class="score-item text-gray-500">Nenhum jogador cadastrado ainda.</li>';
+                return;
+            }
+
+            // Ordena os jogadores: quem terminou primeiro, depois quem está mais avançado
+            allPlayers.sort((a, b) => {
+                const playerA = getPlayerDataSync(a);
+                const playerB = getPlayerDataSync(b);
+
+                const posA = playerA ? playerA.position : 0;
+                const posB = playerB ? playerB.position : 0;
+                const endedA = playerA ? playerA.gameEnded : false;
+                const endedB = playerB ? playerB.gameEnded : false;
+
+                if (endedA && !endedB) return -1;
+                if (!endedA && endedB) return 1;
+                if (endedA && endedB) {
+                    return posB - posA; // Quem terminou mais avançado primeiro
+                }
+                return posB - posA; // Quem está mais avançado primeiro
+            });
+
+
+            for (const playerId of allPlayers) {
+                const playerData = await getPlayerData(playerId);
+                if (playerData) {
+                    const listItem = document.createElement('li');
+                    listItem.classList.add('score-item');
+
+                    const positionText = playerData.gameEnded ?
+                        `<span class="finished">Vencedor!</span>` :
+                        `<span class="position">${playerData.position + 1}/${totalHouses}</span>`;
+
+                    listItem.innerHTML = `
+                        <span>ID: ${playerId}</span>
+                        ${positionText}
+                    `;
+                    scoreList.appendChild(listItem);
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadScores);
+
+        window.addEventListener('storage', (event) => {
+            if (event.key && event.key.startsWith(PLAYER_DATA_PREFIX) && event.key.endsWith(PLAYER_DATA_SUFFIX)) {
+                loadScores();
+            } else if (event.key === ALL_PLAYER_IDS_KEY) {
+                loadScores();
+            }
+        });
+    </script>
+</body>
+</html>

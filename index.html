@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corrida da Qualidade - O Jogo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+
+            
+            
+            background-image: url('paginapricipal1.gif');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            
+        }
+
+        .game-container {
+            background-color: #ffffff;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            width: 100%;
+            max-width: 600px;
+            position: relative;
+            border: 2px solid #cbd5e1;
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .house {
+            width: 100%;
+            padding-top: 100%;
+            background-color: #e2e8f0;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: #475569;
+            position: relative;
+            font-size: 0.9em;
+            transition: box-shadow 0.3s ease-in-out;
+        }
+
+        .house-number {
+            position: absolute;
+            top: 4px;
+            left: 6px;
+            font-size: 0.7em;
+            color: #64748b;
+        }
+
+        .house-start { background-color: #d1fae5; }
+        .house-surprise { background-color: #fef3c7; }
+        .house-end { background-color: #fee2e2; }
+
+        .house-active {
+            box-shadow: 0 0 12px 4px rgba(59, 130, 246, 0.8);
+            border-color: #3b82f6;
+        }
+
+        .player {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            border: 2px solid #1e40af;
+            transition: all 0.5s ease-in-out;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.8em;
+        }
+
+        .dice-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .dice-display {
+            font-size: 3em;
+            font-weight: bold;
+            color: #1a202c;
+            min-width: 60px;
+            text-align: center;
+            padding: 8px 16px;
+            background-color: #fefcbf;
+            border: 2px solid #fcd34d;
+            border-radius: 8px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .message-box {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 8px;
+            background-color: #dbeafe;
+            color: #1e40af;
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+            font-weight: 500;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            opacity: 1; /* Garante que a mensagem esteja visível */
+            transition: opacity 0.5s ease-out; /* Adiciona uma transição suave para o fade out */
+        }
+
+        .message-box.fade-out {
+            opacity: 0;
+        }
+
+        /* --- 4. Mensagem de Falta Grave (Vermelho) --- */
+        .message-box.foul-message {
+            background-color: #fee2e2; /* light red */
+            color: #b91c1c; /* dark red */
+            border: 2px solid #ef4444; /* borda vermelha */
+            font-weight: bold;
+        }
+
+
+        @media (max-width: 640px) {
+            .board {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            .game-container {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="text-3xl font-bold text-gray-800">Corrida da Qualidade</h1>
+
+        <div id="authSection" class="w-full max-w-sm bg-gray-50 p-6 rounded-lg shadow-inner flex flex-col gap-4 items-center">
+            <h2 class="text-xl font-semibold text-gray-700">Bem-vindo(a)!</h2>
+            <input type="text" id="playerIdInput" maxlength="10" placeholder="Digite seu ID (até 10 dígitos)"
+                   class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-700">
+            <button id="registerLoginButton"
+                    class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition duration-200 transform hover:scale-105 shadow-md">
+                Entrar / Cadastrar
+            </button>
+            <p id="currentLoggedInPlayer" class="text-sm text-gray-600 hidden">Jogador atual: <span class="font-bold"></span></p>
+            <button id="logoutButton"
+                    class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg text-sm hidden">
+                Sair
+            </button>
+            <div class="mt-4 text-center">
+                <a href="score.html" class="text-blue-600 hover:underline">Ver Scores</a>
+            </div>
+        </div>
+
+        <div id="gameContent" class="hidden w-full flex flex-col items-center gap-5">
+            <div class="board" id="gameBoard">
+                </div>
+
+            <div class="dice-area flex flex-col sm:flex-row gap-4 items-center">
+                <div id="diceDisplay" class="dice-display">?</div>
+                <button id="rollDiceButton" disabled
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-200 transform hover:scale-105 shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                    Rolar Dado
+                </button>
+            </div>
+
+            <div id="messageBox" class="message-box">Faça seu cadastro ou entre para começar!</div>
+        </div>
+    </div>
+
+    <script src="game-logic.js"></script>
+    <script>
+        const board = document.getElementById('gameBoard');
+        const player = document.createElement('div');
+        player.classList.add('player');
+        player.textContent = 'P';
+        board.appendChild(player);
+
+        const diceDisplay = document.getElementById('diceDisplay');
+        const rollDiceButton = document.getElementById('rollDiceButton');
+        const messageBox = document.getElementById('messageBox');
+        const playerIdInput = document.getElementById('playerIdInput');
+        const registerLoginButton = document.getElementById('registerLoginButton');
+        const authSection = document.getElementById('authSection');
+        const gameContent = document.getElementById('gameContent');
+        const currentLoggedInPlayerSpan = document.querySelector('#currentLoggedInPlayer span');
+        const currentLoggedInPlayerDiv = document.getElementById('currentLoggedInPlayer');
+        const logoutButton = document.getElementById('logoutButton');
+
+        const totalHouses = 30;
+        let currentPlayerPosition = 0;
+        let gameEnded = false;
+        let currentPlayerId = null;
+
+        const houseElements = [];
+        const housePositions = [];
+        let activeHouse = null;
+        let messageTimeoutId = null;
+
+        const specialHouses = {
+            start: 0,
+            surprise: [3, 7, 12, 16, 22, 28],
+            end: totalHouses - 1
+        };
+
+        // --- Funções de UI e Lógica de Jogo ---
+
+        function updatePlayerPositionVisual(positionIndex) {
+            positionIndex = Math.max(0, Math.min(positionIndex, totalHouses - 1));
+
+            if (activeHouse) {
+                activeHouse.classList.remove('house-active');
+            }
+
+            if (houseElements.length > positionIndex) {
+                const currentHouse = houseElements[positionIndex];
+                currentHouse.classList.add('house-active');
+                activeHouse = currentHouse;
+                player.style.left = `${housePositions[positionIndex].left}px`;
+                player.style.top = `${housePositions[positionIndex].top}px`;
+                currentPlayerPosition = positionIndex;
+            }
+        }
+
+        function showMessage(message, type = 'info', duration = 5000) {
+            if (messageTimeoutId) {
+                clearTimeout(messageTimeoutId);
+                messageBox.classList.remove('fade-out');
+                messageBox.style.opacity = '1';
+            }
+
+            messageBox.textContent = message;
+            messageBox.classList.remove('bg-blue-100', 'text-blue-800', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800', 'bg-yellow-100', 'text-yellow-800', 'foul-message');
+            
+            if (type === 'info') {
+                messageBox.classList.add('bg-blue-100', 'text-blue-800');
+            } else if (type === 'success') {
+                messageBox.classList.add('bg-green-100', 'text-green-800');
+            } else if (type === 'error') {
+                messageBox.classList.add('bg-red-100', 'text-red-800');
+            } else if (type === 'warning') {
+                messageBox.classList.add('bg-yellow-100', 'text-yellow-800');
+            } else if (type === 'foul') {
+                messageBox.classList.add('foul-message');
+            }
+
+            messageTimeoutId = setTimeout(() => {
+                messageBox.classList.add('fade-out');
+                setTimeout(() => {
+                    messageBox.textContent = '';
+                    messageBox.classList.remove('fade-out');
+                    messageBox.style.opacity = '1';
+                }, 500);
+            }, duration);
+        }
+
+        async function rollDice() {
+            if (gameEnded) {
+                showMessage("O jogo terminou! Comece um novo jogo para jogar novamente.", 'warning');
+                return;
+            }
+            if (!currentPlayerId) {
+                showMessage("Por favor, faça login para jogar.", 'error');
+                return;
+            }
+            
+            const playerData = await getPlayerData(currentPlayerId);
+            if (!playerData || !playerData.canPlay) {
+                showMessage("Sua jogada não está liberada pelo Monitor. Aguarde!", 'error');
+                rollDiceButton.disabled = true;
+                return;
+            }
+
+            rollDiceButton.disabled = true;
+            playerData.canPlay = false;
+            // Preserva o foulApplied ao salvar
+            await savePlayerData(currentPlayerId, currentPlayerPosition, gameEnded, playerData.canPlay, playerData.foulApplied);
+
+
+            let rollCount = 0;
+            let randomRoll = 0;
+            const interval = setInterval(() => {
+                randomRoll = Math.floor(Math.random() * 6) + 1;
+                diceDisplay.textContent = randomRoll;
+                rollCount++;
+                if (rollCount > 10) {
+                    clearInterval(interval);
+                    movePlayer(randomRoll);
+                }
+            }, 100);
+        }
+
+        function movePlayer(steps) {
+            let targetPosition = currentPlayerPosition + steps;
+
+            if (targetPosition >= totalHouses - 1) {
+                targetPosition = totalHouses - 1;
+                gameEnded = true;
+                showMessage("Parabéns! Você conseguiu chegar ao fim do jogo! Sua dedicação é o que te levará ao sucesso", 'success');
+                rollDiceButton.textContent = "Jogo Finalizado";
+                rollDiceButton.disabled = true;
+            } else if (targetPosition < 0) {
+                targetPosition = 0;
+            }
+
+            let stepsToAnimate = Math.abs(targetPosition - currentPlayerPosition);
+            let direction = (targetPosition > currentPlayerPosition) ? 1 : -1;
+
+            let currentAnimatedStep = 0;
+            const moveInterval = setInterval(async () => {
+                if (currentAnimatedStep < stepsToAnimate) {
+                    currentPlayerPosition += direction;
+                    updatePlayerPositionVisual(currentPlayerPosition);
+                    currentAnimatedStep++;
+                } else {
+                    clearInterval(moveInterval);
+                    checkSpecialHouse(currentPlayerPosition);
+                    // Salva o estado final após a animação, definindo canPlay como false e foulApplied como false
+                    await savePlayerData(currentPlayerId, currentPlayerPosition, gameEnded, false, false);
+                }
+            }, 300);
+        }
+
+        function checkSpecialHouse(position) {
+            if (position === specialHouses.start) {
+                showMessage("Você voltou ao início! Que pena...", 'error');
+            } else if (specialHouses.surprise.includes(position)) {
+                const surpriseEffects = [
+                    { msg: "Você prestou um excelente atendimento e o usuário te deu nota máxima na pesquisa! Avance 1 casa extra!", action: () => movePlayerInstant(1) },
+                    { msg: "Você recebeu um elogio do usuário, avance duas casas", action: () => movePlayerInstant(2) },
+                    { msg: "Sua ligação ficou muda, sinalize seu supervisor e aguarde a próxima jogada.", action: () => showMessage("Até breve ;)", 'info') },
+                    { msg: "Hora do almoço! Pegue seu lanchinho. Se trouxe marmita, esquente com jeitinho!", action: () => showMessage("Pausa para recarregar as energias!", 'info') }
+                ];
+                const chosenEffect = surpriseEffects[Math.floor(Math.random() * surpriseEffects.length)];
+                showMessage(chosenEffect.msg, 'warning');
+                if (chosenEffect.action) {
+                    setTimeout(chosenEffect.action, 1000);
+                }
+            } else if (position === specialHouses.end) {
+                // Já tratado na função movePlayer
+            } else {
+                showMessage("Sua vez terminou. Aguarde o Monitor liberar a próxima jogada.");
+            }
+        }
+
+        async function movePlayerInstant(steps) {
+            let newPosition = currentPlayerPosition + steps;
+            if (newPosition < 0) newPosition = 0;
+            if (newPosition >= totalHouses - 1) {
+                newPosition = totalHouses - 1;
+                gameEnded = true;
+                showMessage("Parabéns! Você conseguiu chegar ao fim do jogo! Sua dedicação é o que te levará ao sucesso", 'success');
+                rollDiceButton.textContent = "Jogo Finalizado";
+                rollDiceButton.disabled = true;
+            }
+
+            currentPlayerPosition = newPosition;
+            updatePlayerPositionVisual(currentPlayerPosition);
+            showMessage(`Avançou ${steps} casa(s)!`, 'info');
+            setTimeout(() => checkSpecialHouse(currentPlayerPosition), 500);
+            // Salva após o movimento instantâneo, bloqueando a jogada e limpando a flag de falta grave
+            await savePlayerData(currentPlayerId, currentPlayerPosition, gameEnded, false, false);
+        }
+
+        function createBoard() {
+            board.innerHTML = '';
+            houseElements.length = 0;
+            housePositions.length = 0;
+
+            for (let i = 0; i < totalHouses; i++) {
+                const house = document.createElement('div');
+                house.classList.add('house');
+                house.innerHTML = `<span class="house-number">${i + 1}</span>`;
+
+                if (i === specialHouses.start) {
+                    house.classList.add('house-start');
+                    house.innerHTML += '<br>Início';
+                } else if (specialHouses.surprise.includes(i)) {
+                    house.classList.add('house-surprise');
+                } else if (i === specialHouses.end) {
+                    house.classList.add('house-end');
+                    house.innerHTML += '<br>Fim!';
+                }
+
+                board.appendChild(house);
+                houseElements.push(house);
+            }
+
+            setTimeout(() => {
+                houseElements.forEach((house, index) => {
+                    const rect = house.getBoundingClientRect();
+                    const boardRect = board.getBoundingClientRect();
+                    housePositions.push({
+                        left: rect.left - boardRect.left + (rect.width / 2) - (player.offsetWidth / 2),
+                        top: rect.top - boardRect.top + (rect.height / 2) - (player.offsetHeight / 2)
+                    });
+                });
+                updatePlayerPositionVisual(currentPlayerPosition);
+            }, 0);
+        }
+
+        // --- Funções de Autenticação/Cadastro ---
+        async function handleRegisterLogin() {
+            const id = playerIdInput.value.trim();
+            if (id.length === 0 || id.length > 10) {
+                showMessage("Por favor, digite um ID com até 10 dígitos.", 'error');
+                return;
+            }
+
+            currentPlayerId = id;
+            currentLoggedInPlayerSpan.textContent = currentPlayerId;
+            currentLoggedInPlayerDiv.classList.remove('hidden');
+            logoutButton.classList.remove('hidden');
+            authSection.classList.add('hidden');
+            gameContent.classList.remove('hidden');
+
+            const playerData = await getPlayerData(currentPlayerId);
+            if (playerData) {
+                currentPlayerPosition = playerData.position;
+                gameEnded = playerData.gameEnded;
+                
+                if (gameEnded) {
+                    rollDiceButton.textContent = "Jogo Finalizado";
+                    rollDiceButton.disabled = true;
+                    showMessage("Este jogo já foi finalizado.", 'warning');
+                } else {
+                    // **CORREÇÃO PRINCIPAL AQUI:** Define o estado do botão com base em playerData.canPlay
+                    rollDiceButton.disabled = !playerData.canPlay; 
+                    showMessage(`Progresso carregado para ${currentPlayerId}. Posição: ${currentPlayerPosition + 1}.`, 'success');
+                }
+
+                if (playerData.foulApplied) {
+                    showMessage(`O Monitor aplicou uma Falta Grave! Você recuou.`, 'foul', 8000);
+                    // Reseta a flag de foulApplied para que a mensagem apareça apenas uma vez por login
+                    await savePlayerData(currentPlayerId, currentPlayerPosition, gameEnded, playerData.canPlay, false);
+                }
+            } else {
+                currentPlayerPosition = 0;
+                gameEnded = false;
+                rollDiceButton.disabled = true; // Desabilita por padrão para novo jogador
+                showMessage(`Novo jogo iniciado para ${currentPlayerId}. Aguarde o Monitor liberar a jogada.`, 'info');
+                await savePlayerData(currentPlayerId, currentPlayerPosition, false, false, false);
+            }
+
+            updatePlayerPositionVisual(currentPlayerPosition);
+            diceDisplay.textContent = '?';
+        }
+
+        async function handleLogout() {
+            if (confirm("Deseja salvar seu progresso antes de sair?")) {
+                const playerData = await getPlayerData(currentPlayerId);
+                // Garante que o foulApplied seja preservado ao salvar no logout
+                await savePlayerData(currentPlayerId, currentPlayerPosition, gameEnded, (rollDiceButton.disabled === false), playerData ? playerData.foulApplied : false);
+            }
+            currentPlayerId = null;
+            currentPlayerPosition = 0;
+            gameEnded = false;
+            if (activeHouse) {
+                activeHouse.classList.remove('house-active');
+                activeHouse = null;
+            }
+            authSection.classList.remove('hidden');
+            gameContent.classList.add('hidden');
+            currentLoggedInPlayerDiv.classList.add('hidden');
+            logoutButton.classList.add('hidden');
+            playerIdInput.value = '';
+            showMessage("Deslogado com sucesso. Faça login para continuar.");
+            diceDisplay.textContent = '?';
+        }
+
+        // Event Listeners
+        registerLoginButton.addEventListener('click', handleRegisterLogin);
+        logoutButton.addEventListener('click', handleLogout);
+        rollDiceButton.addEventListener('click', rollDice);
+
+        // Inicializa o tabuleiro e o jogador
+        createBoard();
+        showMessage("Faça seu cadastro ou entre para começar!");
+        gameContent.classList.add('hidden');
+
+        // Adiciona um listener para a mensagem de liberação de jogada do ADM
+        window.addEventListener('storage', async (event) => {
+            // Verifica se a mudança no localStorage é para os dados do jogador atual
+            if (currentPlayerId && event.key === `${PLAYER_DATA_PREFIX}${currentPlayerId}${PLAYER_DATA_SUFFIX}`) {
+                const playerData = await getPlayerData(currentPlayerId);
+                if (playerData) {
+                    if (!playerData.gameEnded) {
+                        // **CORREÇÃO PRINCIPAL AQUI:** Atualiza o estado do botão com base em playerData.canPlay
+                        rollDiceButton.disabled = !playerData.canPlay;
+
+                        if (playerData.canPlay && rollDiceButton.disabled === false) { // Se o ADM liberou e o botão não está desabilitado
+                            showMessage("O Monitor liberou sua jogada! Role o dado!", 'success');
+                        } else if (!playerData.canPlay && rollDiceButton.disabled === true) { // Se o ADM bloqueou e o botão está desabilitado
+                             showMessage("O Monitor bloqueou sua jogada. Aguarde.", 'error');
+                        }
+
+                        if (playerData.position !== currentPlayerPosition) {
+                            currentPlayerPosition = playerData.position;
+                            updatePlayerPositionVisual(currentPlayerPosition);
+                            if (playerData.foulApplied) {
+                                showMessage("Sua posição foi atualizada pelo Monitor devido a uma Falta Grave.", 'foul');
+                                await savePlayerData(currentPlayerId, currentPlayerPosition, playerData.gameEnded, playerData.canPlay, false);
+                            } else {
+                                showMessage("Sua posição foi atualizada pelo Monitor.", 'warning');
+                            }
+                        }
+                    } else {
+                        gameEnded = true;
+                        rollDiceButton.textContent = "Jogo Finalizado";
+                        rollDiceButton.disabled = true;
+                        showMessage("Este jogo foi finalizado pelo Monitor ou você já venceu.", 'success');
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
